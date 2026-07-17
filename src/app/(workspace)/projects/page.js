@@ -1,0 +1,2 @@
+import Link from "next/link";
+export default function Projects(){return <main className="simple-page"><Link href="/">← Back to workspace</Link><p className="eyebrow">PROJECTS</p><h1>Your active projects</h1><div className="project-grid">{["Website redesign","Mobile onboarding","Q3 growth initiatives"].map((x,i)=><article key={x}><span className={`project-icon p${i}`}>{x[0]}</span><h2>{x}</h2><p>{["67% complete","42% complete","Planning"][i]} · {12-i*3} open tasks</p><progress value={[67,42,12][i]} max="100"/></article>)}</div></main>}
