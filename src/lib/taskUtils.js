@@ -7,6 +7,11 @@ export const statusMeta = {
 
 export const priorityOptions = ["low", "medium", "high"];
 export const statusOptions = Object.entries(statusMeta).map(([value, [label]]) => ({ value, label }));
+export const projectConfig = {
+  projectName: "Website redesign",
+  companyName: "Acme Inc.",
+  workspaceName: "Product workspace",
+};
 export const initialFormState = {
   title: "",
   description: "",
@@ -99,6 +104,39 @@ export const filterTasksByQuery = (tasks, query = "") => {
   }
 
   return tasks.filter((task) => (task.title ?? "").toLowerCase().includes(normalizedQuery));
+};
+
+const createUniqueValues = (values = []) => Array.from(new Set(values.filter(Boolean)));
+
+export const getProjectOwner = (tasks = []) => {
+  const owners = createUniqueValues([
+    ...(tasks.map((task) => task.managerName?.trim()).filter(Boolean)),
+    ...(tasks.map((task) => task.assignee?.trim()).filter(Boolean)),
+  ]);
+
+  return owners[0] ?? "";
+};
+
+export const getDashboardStats = (tasks = []) => {
+  const totalTasks = tasks.length;
+  const completedTasks = tasks.filter((task) => task.status === "done").length;
+  const completionPercent = totalTasks ? Math.round((completedTasks / totalTasks) * 100) : 0;
+  const dueThisWeek = tasks.filter((task) => {
+    const dueValue = `${task.due ?? ""}`.trim();
+    return dueValue !== "" && task.status !== "done";
+  }).length;
+  const memberNames = createUniqueValues([
+    ...(tasks.map((task) => task.managerName?.trim()).filter(Boolean)),
+    ...(tasks.map((task) => task.assignee?.trim()).filter(Boolean)),
+  ]).slice(0, 4);
+
+  return {
+    completionPercent,
+    openTaskCount: totalTasks,
+    dueThisWeek,
+    memberCount: memberNames.length,
+    memberNames,
+  };
 };
 
 export const isPersistableTask = (task = {}) => !["t1", "t2", "t3", "t4", "t5", "t6", "t7"].includes(task.id);
