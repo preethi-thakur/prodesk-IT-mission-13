@@ -1,0 +1,27 @@
+#Prompts 
+
+- how to make kanban board in next js
+- redux toolkit state not updating
+- why drag and drop is not working in dnd kit
+- how to store redux state in localstorage
+- next js hydration error after using localstorage
+- how to create reusable modal component
+- react task create edit delete example
+- best folder structure for next js project
+- why use redux toolkit instead of context api
+- how to implement search filter in react
+- how to persist dark mode in next js
+- react form validation without library
+- how to generate unique id in javascript
+- why component rerenders in react
+- fix useeffect dependency warning
+- how to optimize react components
+- tailwind responsive dashboard layout
+- how to make sidebar responsive
+- react drag and drop multiple columns
+- how to duplicate object in redux state
+- react confirmation modal before delete
+- how to organize utility functions
+- clean up repeated code in react project
+- review this component and suggest improvements
+- explain this redux slice
