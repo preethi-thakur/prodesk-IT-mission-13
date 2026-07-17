@@ -38,8 +38,12 @@ import {
 import {
   buildTaskFormState,
   buildTaskPayload,
+  filterTasksByQuery,
+  getDashboardStats,
+  getProjectOwner,
   initialFormState,
   priorityOptions,
+  projectConfig,
   statusMeta,
   statusOptions,
 } from "@/lib/taskUtils";
@@ -206,7 +210,7 @@ function BoardColumn({ status, label, tone, tasks, onToast, onCreateTask }) {
   );
 }
 
-function Sidebar({ projectManager }) {
+function Sidebar({ projectManager, taskCount, companyName, workspaceName }) {
   const dispatch = useDispatch();
   const { sidebarOpen } = useSelector((state) => state.ui);
 
@@ -219,7 +223,7 @@ function Sidebar({ projectManager }) {
       </div>
       <button className="workspace">
         <span className="workspace-logo">A</span>
-        <span><b>Acme Inc.</b><small>Product workspace</small></span>
+        <span><b>{companyName}</b><small>{workspaceName}</small></span>
         <ChevronDownIcon />
       </button>
       <nav>
@@ -227,7 +231,7 @@ function Sidebar({ projectManager }) {
           <Link href={href} className={index === 0 ? "active" : ""} key={label}>
             <Icon />
             {label}
-            {label === "My tasks" ? <em>8</em> : null}
+            {label === "My tasks" ? <em>{taskCount}</em> : null}
           </Link>
         ))}
       </nav>
@@ -235,7 +239,7 @@ function Sidebar({ projectManager }) {
         <Link href="/settings"><Cog6ToothIcon />Settings</Link>
         <Link href="/profile" className="person">
           <Avatar name={projectManager} />
-          <span><b>{projectManager}</b><small>Product designer</small></span>
+          <span><b>{projectManager || "Unassigned"}</b><small>{projectManager ? "Workspace owner" : "Unassigned"}</small></span>
           <ChevronDownIcon />
         </Link>
       </div>
@@ -337,9 +341,9 @@ function TaskDrawer({ onToast }) {
                   <input value={form.labels} onChange={(event) => updateField("labels", event.target.value)} placeholder="Design, Marketing" style={{ border: "1px solid #e6e8ec", borderRadius: 8, padding: "10px 12px", background: "#fff" }} />
                 </label>
                 {error ? <div style={{ color: "#c6535b", fontSize: 12 }}>{error}</div> : null}
-                <div className="detail-grid"><span>Manager</span><b>{task.managerName ?? "Unassigned"}</b><span>Assignee</span><b>{task.assignee ?? "Unassigned"}</b><span>Due date</span><b>{task.due ?? "No date"}</b><span>Project</span><b>Website redesign</b></div>
+                <div className="detail-grid"><span>Manager</span><b>{task.managerName ?? "Unassigned"}</b><span>Assignee</span><b>{task.assignee ?? "Unassigned"}</b><span>Due date</span><b>{task.due ?? "No date"}</b><span>Project</span><b>{projectConfig.projectName}</b></div>
                 <h3>Activity</h3>
-                <div className="activity"><Avatar small name={task.managerName ?? task.assignee} /><p><b>{task.managerName ?? "Project lead"}</b> updated this task in the workspace<small>Today, 10:24 AM</small></p></div>
+                <div className="activity"><Avatar small name={task.managerName ?? task.assignee ?? "Unassigned"} /><p><b>{task.managerName ?? task.assignee ?? "Unassigned"}</b> updated this task in the workspace<small>Today, 10:24 AM</small></p></div>
                 <div style={{ display: "grid", gap: 8 }}>
                   <label style={{ display: "grid", gap: 8, fontSize: 12, fontWeight: 700 }}>Comments</label>
                   <textarea value={commentDraft} onChange={(event) => setCommentDraft(event.target.value)} placeholder="Write a comment…" style={{ border: "1px solid #e6e8ec", borderRadius: 8, padding: "10px 12px", minHeight: 78, resize: "vertical", background: "#fff" }} />
@@ -480,8 +484,10 @@ export default function Home() {
   const [toast, setToast] = useState("");
   const [modalStatus, setModalStatus] = useState("todo");
 
-  const tasks = useMemo(() => items.filter((task) => (task.title ?? "").toLowerCase().includes(query.toLowerCase())), [items, query]);
-  const projectManager = items.find((task) => task.managerName?.trim())?.managerName ?? "Project lead";
+  const tasks = useMemo(() => filterTasksByQuery(items, query), [items, query]);
+  const projectManager = getProjectOwner(items);
+  const projectStats = useMemo(() => getDashboardStats(items), [items]);
+  const { completionPercent, openTaskCount, dueThisWeek, memberCount, memberNames } = projectStats;
 
   useEffect(() => {
     if (!toast) return;
@@ -496,11 +502,11 @@ export default function Home() {
 
   return (
     <main className={dark ? "app dark min-h-screen" : "app min-h-screen"}>
-      <Sidebar projectManager={projectManager} />
+      <Sidebar projectManager={projectManager} taskCount={openTaskCount} companyName={projectConfig.companyName} workspaceName={projectConfig.workspaceName} />
       <div className="content">
         <header className="topbar">
           <button className="menu" onClick={() => dispatch(toggleSidebar())}>☰</button>
-          <div className="crumb"><span>Projects</span><b>/</b><strong>Website redesign</strong></div>
+          <div className="crumb"><span>Projects</span><b>/</b><strong>{projectConfig.projectName}</strong></div>
           <label className="search">
             <MagnifyingGlassIcon />
             <input value={query} onChange={(event) => dispatch(setQuery(event.target.value))} placeholder="Search anything…" />
@@ -516,8 +522,8 @@ export default function Home() {
         <section className="page-head">
           <div>
             <div className="eyebrow">ACME INC. <span>•</span> CUSTOMER EXPERIENCE</div>
-            <h1>Website redesign</h1>
-            <p>Spring release · Owner: {projectManager} · Last updated 2 min ago</p>
+            <h1>{projectConfig.projectName}</h1>
+            <p>Spring release · Owner: {projectManager || "Unassigned"} · Last updated 2 min ago</p>
           </div>
           <div className="head-actions">
             <button className="ghost"><FunnelIcon />Filter</button>
@@ -525,14 +531,14 @@ export default function Home() {
           </div>
         </section>
         <section className="metrics">
-          <div><span>Completion</span><b>67%</b><progress value="67" max="100" /></div>
-          <div><span>Open tasks</span><b>{items.length}</b><small className="up">↑ 3 this week</small></div>
+          <div><span>Completion</span><b>{completionPercent}%</b><progress value={completionPercent} max="100" /></div>
+          <div><span>Open tasks</span><b>{openTaskCount}</b><small className="up">↑ 3 this week</small></div>
           <div>
             <span>Due this week</span>
-            <b>5</b>
-            <div className="avatar-row">{avatarColors.map((_, index) => <Avatar key={index} name={memberNames[index]} small />)}</div>
+            <b>{dueThisWeek}</b>
+            <div className="avatar-row">{memberNames.map((memberName, index) => <Avatar key={`${memberName}-${index}`} name={memberName} small />)}</div>
           </div>
-          <div><span>Project members</span><b>8</b><button className="link">Manage team →</button></div>
+          <div><span>Project members</span><b>{memberCount}</b><button className="link">Manage team →</button></div>
         </section>
         <div className="tabbar">
           {tabOptions.map((value) => <button key={value} className={tab === value ? "selected" : ""} onClick={() => setTab(value)}>{value}</button>)}
